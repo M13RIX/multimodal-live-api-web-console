@@ -138,24 +138,7 @@ export function useLiveAPI({
       localTts(lastMessage, setIsAiTalking); // Вызываем функцию localTts и передаем функцию setIsAiTalking
       lastMessage = ""; // Сбрасываем lastMessage после отправки в TTS
     };
-
-    // **Концептуальная реализация глушения микрофона:**
-    const onRealtimeInput = (message: any) => { // Предполагаем, что есть обработчик для входящего realtimeInput
-      if (isAiTalking) {
-        console.log("Microphone Muted (AI Talking)");
-        // В РЕАЛЬНОМ ПРИЛОЖЕНИИ ЗДЕСЬ НУЖНО ПРЕРВАТЬ ИЛИ ЗАГЛУШИТЬ ПОТОК МИКРОФОНА, ПРЕЖДЕ ЧЕМ ОТПРАВЛЯТЬ `realtimeInputMessage` КЛИЕНТУ.
-        // НАПРИМЕР:
-        // остановить запись с микрофона, или
-        // не отправлять message.mediaChunks, если они есть, или
-        // модифицировать message.mediaChunks, чтобы они были пустыми/тихими.
-        return; // Прерываем дальнейшую обработку realtimeInput, если AI говорит
-      }
-      // ОБЫЧНАЯ ОБРАБОТКА realtimeInput, ЕСЛИ AI НЕ ГОВОРИТ:
-      // console.log("Microphone Active (User Talking)", message);
-      // client.sendRealtimeInput(message); // Пример отправки realtimeInput (нужно адаптировать под ваш код)
-    };
-
-
+    
     client
         .on("close", onClose)
         .on("interrupted", stopAudioStreamer)
