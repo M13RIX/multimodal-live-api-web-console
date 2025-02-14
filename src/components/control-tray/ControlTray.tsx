@@ -72,7 +72,7 @@ function ControlTray({
   const renderCanvasRef = useRef<HTMLCanvasElement>(null);
   const connectButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { client, connected, connect, disconnect, volume } =
+  const { client, connected, connect, disconnect, volume, isAiTalking } =
     useLiveAPIContext();
 
   useEffect(() => {
@@ -96,7 +96,9 @@ function ControlTray({
         },
       ]);
     };
-    if (connected && !muted && audioRecorder) {
+    let Muted = muted || isAiTalking; // Упрощенная и более понятная логика мьюта
+    console.log("isAiTalking:", isAiTalking, "Muted:", Muted); // Добавим лог для Muted
+    if (connected && !Muted && audioRecorder) {
       audioRecorder.on("data", onData).on("volume", setInVolume).start();
     } else {
       audioRecorder.stop();
@@ -104,7 +106,7 @@ function ControlTray({
     return () => {
       audioRecorder.off("data", onData).off("volume", setInVolume);
     };
-  }, [connected, client, muted, audioRecorder]);
+  }, [connected, client, muted, audioRecorder, isAiTalking]); // **Добавили isAiTalking в зависимости**
 
   useEffect(() => {
     if (videoRef.current) {

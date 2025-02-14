@@ -186,11 +186,11 @@ const ToolResponseLog = ({ message }: Message): JSX.Element => (
   </div>
 );
 
+
 const ModelTurnLog = ({ message }: Message): JSX.Element => {
   const serverContent = (message as ServerContentMessage).serverContent;
   const { modelTurn } = serverContent as ModelTurn;
   const { parts } = modelTurn;
-
   return (
     <div className="rich-log model-turn model">
       <h4 className="role-model">Model</h4>
