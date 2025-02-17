@@ -36,44 +36,90 @@ export type UseLiveAPIResults = {
   isAiTalking: boolean; // Добавляем состояние isAiTalking
 };
 
-function replaceEllipses(text: string) {
-  return text.replace("...", "…");
-}
+async function localTts(text: string, setIsAiTalking: (talking: boolean) => void): Promise<void> { // Возвращаем Promise<void>
+  return new Promise(async (resolve) => { // Оборачиваем в Promise
+    try {
+      setIsAiTalking(true);
 
-async function localTts(text: string, setIsAiTalking: (talking: boolean) => void) { // Добавляем функцию для обновления isAiTalking
-  if (!text.trim()) {
-    setIsAiTalking(false); // TTS закончил говорить, сбрасываем флаг
-    return;
-  }
+      const response = await fetch('https://spark-api.up.railway.app/synthesize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
 
-  setIsAiTalking(true); // TTS начал говорить, устанавливаем флаг
+      if (!response.body) throw new Error('No response body');
+      const reader = response.body.getReader();
 
-  const url = "http://localhost:8020/tts_to_audio/";
-  const data = {
-    "text": replaceEllipses(text),
-    "speaker_wav": "C:\\Users\\maxim\\Downloads\\spark-sample.wav", // **Важно:** Проверьте путь!
-    "language": "ru"
-  };
+      const mediaSource = new MediaSource();
+      const audio = new Audio(URL.createObjectURL(mediaSource));
+      let sourceBuffer: SourceBuffer;
+      let queue: Uint8Array[] = [];
+      let isPlaying = false;
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
+      mediaSource.addEventListener('sourceopen', async () => {
+        try {
+          sourceBuffer = mediaSource.addSourceBuffer('audio/webm; codecs="opus"');
+          sourceBuffer.mode = 'sequence';
 
-    if (!response.ok) {
-      console.error(`HTTP error! status: ${response.status}`);
+          // 1. Сначала собираем весь буфер
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            queue.push(value);
+          }
+
+          // 2. Затем последовательно воспроизводим
+          const playChunk = async () => {
+            if (queue.length === 0) {
+              if (mediaSource.readyState === 'open') {
+                mediaSource.endOfStream();
+              }
+              return;
+            }
+
+            await new Promise<void>(resolveChunk => {
+              sourceBuffer.appendBuffer(queue.shift()!.buffer);
+              sourceBuffer.addEventListener('updateend', () => resolveChunk(), { once: true });
+            });
+
+            if (!isPlaying) {
+              await audio.play();
+              isPlaying = true;
+            }
+
+            playChunk();
+          };
+
+          playChunk();
+
+        } catch (err) {
+          console.error('Stream error:', err);
+          mediaSource.endOfStream();
+        }
+      });
+
+      let actionExecuted = false;
+
+      audio.addEventListener('timeupdate', () => {
+        const remainingTime = audio.duration - audio.currentTime;
+        if (remainingTime <= 2.4 && !actionExecuted) {
+          // Выполняем действие за секунду до завершения
+          URL.revokeObjectURL(audio.src);
+          setIsAiTalking(false);
+          actionExecuted = true;
+          console.log("finish audio")
+          resolve(); // Разрешаем Promise после завершения TTS
+        }
+      });
+
+    } catch (error) {
+      console.error('TTS Error:', error);
+      setIsAiTalking(false);
+      resolve(); // Разрешаем Promise в случае ошибки, чтобы очередь не зависла
     }
-    // Вы можете обработать ответ сервера здесь, если нужно
-  } catch (error) {
-    console.error("Could not send TTS request", error);
-  } finally {
-    setIsAiTalking(false); // TTS закончил попытку запроса, сбрасываем флаг (даже при ошибке)
-  }
+  });
 }
+
 
 export function useLiveAPI({
                              url,
@@ -91,6 +137,34 @@ export function useLiveAPI({
   });
   const [volume, setVolume] = useState(0);
   const [isAiTalking, setIsAiTalking] = useState(false); // Инициализируем состояние isAiTalking
+
+  const ttsQueue = useRef<string[]>([]); // Очередь для текстов TTS
+  const isTtsProcessing = useRef(false); // Флаг, указывающий, выполняется ли TTS в данный момент
+
+  const processTtsQueue = useCallback(async () => {
+    if (isTtsProcessing.current) {
+      return; // Если TTS уже выполняется, ничего не делаем
+    }
+
+    if (ttsQueue.current.length === 0) {
+      return; // Если очередь пуста, выходим
+    }
+
+    isTtsProcessing.current = true; // Устанавливаем флаг обработки
+
+    const textToSynthesize = ttsQueue.current.shift(); // Берем первый текст из очереди
+    if (textToSynthesize) {
+      await localTts(textToSynthesize, setIsAiTalking); // Выполняем TTS
+    }
+
+    isTtsProcessing.current = false; // Сбрасываем флаг обработки после завершения TTS
+
+    // Проверяем, есть ли еще элементы в очереди, и если есть, запускаем следующую итерацию
+    if (ttsQueue.current.length > 0) {
+      processTtsQueue(); // Рекурсивный вызов для обработки следующего элемента
+    }
+  }, [setIsAiTalking]);
+
 
   // register audio for streaming server -> speakers
   useEffect(() => {
@@ -121,24 +195,27 @@ export function useLiveAPI({
     let lastMessage ="";
 
     // **Новый код: Обработка текстовых ответов от Gemini, изменено имя события на "content"**
-    const onContent = (message: any) => { // Изменено имя обработчика и события на "content"
+    const onContent = async (message: any) => { // Изменено имя обработчика и события на "content"
       if (isModelTurn(message)) {
         console.log(message)
         const modelTurn = message.modelTurn;
         const textParts = modelTurn.parts.filter(part => part.text);
         if (textParts.length > 0) {
           const responseText = textParts.map(part => part.text).join("");
+          ttsQueue.current.push(responseText); // Добавляем текст в очередь
+          processTtsQueue(); // Запускаем обработку очереди
           lastMessage += responseText;
         }
       }
     };
 
-    const onTurnComplete = () => { // Вызов TTS при завершении turn
+    // В обработчике onTurnComplete добавляем void для Promise
+    const onTurnComplete = () => {
       console.log("Turn complete, sending to TTS:", lastMessage);
-      localTts(lastMessage, setIsAiTalking); // Вызываем функцию localTts и передаем функцию setIsAiTalking
-      lastMessage = ""; // Сбрасываем lastMessage после отправки в TTS
+      // FIX 4: Добавляем void для асинхронной операции
+      lastMessage = "";
     };
-    
+
     client
         .on("close", onClose)
         .on("interrupted", stopAudioStreamer)
@@ -158,7 +235,8 @@ export function useLiveAPI({
       // .off("realtimeInput", onRealtimeInput) // **ВАЖНО:**  Удалите обработчик, если раскомментировали выше
       ;
     };
-  }, [client, isAiTalking]); // Добавляем isAiTalking в зависимости useEffect, чтобы пере-рендерить при изменении
+  }, [client, isAiTalking, processTtsQueue]); // Добавляем processTtsQueue в зависимости useEffect
+
 
   const connect = useCallback(async () => {
     console.log(config);
