@@ -54,7 +54,6 @@
 
 body {
   font-family: "Space Mono", monospace;
-  background: var(--Neutral-30);
 }
 
 .material-symbols-outlined {
@@ -114,7 +113,6 @@ body {
 @media (prefers-reduced-motion: no-preference) {}
 
 .streaming-console {
-  background: var(--Neutral-5);
   color: var(--gray-300);
   display: flex;
   height: 100vh;

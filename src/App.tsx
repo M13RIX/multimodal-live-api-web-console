@@ -41,25 +41,25 @@ function App() {
     <div className="App">
       <LiveAPIProvider url={uri} apiKey={API_KEY}>
         <div className="streaming-console">
-          <SidePanel />
+          <SidePanel/>
           <main>
             <div className="main-app-area">
               {/* APP goes here */}
-              <Altair />
+              <Altair/>
               <video
-                className={cn("stream", {
-                  hidden: !videoRef.current || !videoStream,
-                })}
-                ref={videoRef}
-                autoPlay
-                playsInline
+                  className={cn("stream", {
+                    hidden: !videoRef.current || !videoStream,
+                  })}
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
               />
             </div>
 
             <ControlTray
-              videoRef={videoRef}
-              supportsVideo={true}
-              onVideoStreamChange={setVideoStream}
+                videoRef={videoRef}
+                supportsVideo={true}
+                onVideoStreamChange={setVideoStream}
             >
               {/* put your own buttons here */}
             </ControlTray>

@@ -98,6 +98,9 @@ function ControlTray({
     };
     let Muted = muted || isAiTalking; // Упрощенная и более понятная логика мьюта
     console.log("isAiTalking:", isAiTalking, "Muted:", Muted); // Добавим лог для Muted
+    if (!isAiTalking) {
+      if (window.setAIState) window.setAIState("idle");
+    }
     if (connected && !Muted && audioRecorder) {
       audioRecorder.on("data", onData).on("volume", setInVolume).start();
     } else {

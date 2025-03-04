@@ -1,0 +1,32 @@
+.visualizer-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1; /* Помещаем канвас за всеми элементами */
+    width: 100vw;
+    height: 100vh;
+}
+
+.pupil-glow {
+    position: fixed;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
+.youtube-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 999;
+}
+
+.youtube-iframe {
+    width: 640px;
+    height: 360px;
+    border: none;
+}

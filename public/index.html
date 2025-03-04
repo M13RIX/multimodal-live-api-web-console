@@ -20,6 +20,7 @@
       rel="stylesheet"
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="stylesheet" href="style.css">
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
@@ -34,7 +35,7 @@
 
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <div id="root" style="z-index: 1;"></div>
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
@@ -45,5 +46,55 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
+    <div class="spark-container">
+      <canvas id="visualizerCanvas"></canvas>
+      <div id="pupil-glow"></div>
+      <div class="spark-visualizer">
+        <div class="camera-feed-container">
+          <video id="camera-preview" autoplay playsinline muted></video>
+          <canvas id="canvas" width="1280" height="720" style="display: none;"></canvas>
+        </div>
+      </div>
+      <div id="youtube-player-container" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60%; height: 60%; pointer-events: auto; opacity: 0; transition: opacity 0.3s ease;">
+        <iframe id="youtube-iframe" style="width: 100%; height: 100%; border: none;" allowfullscreen></iframe>
+      </div>
+
+      <!-- Новый блок с информацией о видео -->
+      <div class="video-info-panel" id="videoInfoPanel">
+        <h1 class="video-title" id="dynamicVideoTitle">Название Видео</h1>
+        <div class="video-meta">
+          <div class="author-icon" id="dynamicAuthorIcon">
+            <img src="author_icon_placeholder.png" alt="Иконка автора">
+          </div>
+          <span class="video-date-author" id="dynamicVideoMeta">Дата выхода - Автор</span>
+        </div>
+        <p class="video-description" id="dynamicVideoDescription">
+        </p>
+      </div>
+
+      <!-- Музыкальный плеер -->
+      <div class="music-player-container" id="musicPlayer">
+        <div class="controls-container">
+          <button class="control-button" id="playPause">
+            <svg class="control-icon" viewBox="0 0 24 24">
+              <path id="playIcon" d="M3 22V2L17 12L3 22Z" />
+              <path id="pauseIcon" style="display: none;" d="M6 19H8V5H6V19ZM16 19H18V5H16V19Z" />
+            </svg>
+          </button>
+        </div>
+        <div class="progress-bar-container">
+          <input type="range" id="progressBar" class="progress-bar" value="0">
+        </div>
+        <div class="volume-control-container">
+          <svg class="control-icon" viewBox="0 0 24 24">
+            <path d="M3 9v6h4l5 5V4l-5 5H3zM14 16.67c0-1.69-1.33-3.17-3.02-3.31v6.63c1.69-.15 3.02-1.63 3.02-3.32zM14 10c0-1.69-1.33-3.17-3.02-3.31v6.62c1.69-.15 3.02-1.63 3.02-3.31zM19 12c0 2.64-2.15 4.85-4.8 4.99v-9.98c2.65.14 4.8 2.35 4.8 4.99z"/>
+          </svg>
+          <input type="range" id="volumeControl" class="volume-control" min="0" max="1" step="0.01" value="1">
+        </div>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.19/dist/bundle.min.js"></script>
+    <script src="ai_visualizer.js"></script>
   </body>
 </html>

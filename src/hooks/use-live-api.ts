@@ -36,9 +36,37 @@ export type UseLiveAPIResults = {
   isAiTalking: boolean; // Добавляем состояние isAiTalking
 };
 
-async function localTts(text: string, setIsAiTalking: (talking: boolean) => void): Promise<void> { // Возвращаем Promise<void>
+async function localTts(text: string, setIsAiTalking: (talking: boolean) => void, islast: boolean = false): Promise<void> { // Возвращаем Promise<void>
   return new Promise(async (resolve) => { // Оборачиваем в Promise
     try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      let animationFrameId: number;
+
+      // Настройка анализатора
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      // Функция для анализа амплитуды
+      const analyzeAmplitude = () => {
+        analyser.getByteTimeDomainData(dataArray);
+        let sum = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const value = (dataArray[i] - 128) / 128;
+          sum += value * value;
+        }
+
+        const amplitude = sum / 3;
+
+        // Отправка события с амплитудой
+        if (window.setSpeakingAmplitude) window.setSpeakingAmplitude(amplitude)
+
+        animationFrameId = requestAnimationFrame(analyzeAmplitude);
+      };
+
       setIsAiTalking(true);
 
       const response = await fetch('https://spark-api.up.railway.app/synthesize', {
@@ -55,6 +83,11 @@ async function localTts(text: string, setIsAiTalking: (talking: boolean) => void
       let sourceBuffer: SourceBuffer;
       let queue: Uint8Array[] = [];
       let isPlaying = false;
+
+      // Подключение анализатора к аудио
+      const source = audioContext.createMediaElementSource(audio);
+      source.connect(analyser);
+      analyser.connect(audioContext.destination);
 
       mediaSource.addEventListener('sourceopen', async () => {
         try {
@@ -84,7 +117,10 @@ async function localTts(text: string, setIsAiTalking: (talking: boolean) => void
 
             if (!isPlaying) {
               await audio.play();
+              if (window.setAIState) window.setAIState("speaking");
               isPlaying = true;
+              audioContext.resume();
+              analyzeAmplitude();
             }
 
             playChunk();
@@ -99,14 +135,19 @@ async function localTts(text: string, setIsAiTalking: (talking: boolean) => void
       });
 
       let actionExecuted = false;
+      let minimumTime = 2.4;
+      if (islast) {
+        minimumTime = 0.2;
+        console.log("LAST")
+      };
 
       audio.addEventListener('timeupdate', () => {
         const remainingTime = audio.duration - audio.currentTime;
-        if (remainingTime <= 2.4 && !actionExecuted) {
+        if (remainingTime <= minimumTime && !actionExecuted) {
           // Выполняем действие за секунду до завершения
           URL.revokeObjectURL(audio.src);
-          setIsAiTalking(false);
           actionExecuted = true;
+          setIsAiTalking(false);
           console.log("finish audio")
           resolve(); // Разрешаем Promise после завершения TTS
         }
@@ -138,31 +179,36 @@ export function useLiveAPI({
   const [volume, setVolume] = useState(0);
   const [isAiTalking, setIsAiTalking] = useState(false); // Инициализируем состояние isAiTalking
 
-  const ttsQueue = useRef<string[]>([]); // Очередь для текстов TTS
-  const isTtsProcessing = useRef(false); // Флаг, указывающий, выполняется ли TTS в данный момент
+  const ttsQueue = useRef<string[]>([]);
+  const isTtsProcessing = useRef(false);
+  const incompleteWordBuffer = useRef(''); // Буфер для незавершенных слов
+
+  const findLastSeparatorIndex = (text: string): number => {
+    const separators = [' ', '.', '!', '?', ',', ';', ':', '\n', '\t'];
+    let lastIndex = -1;
+    for (const sep of separators) {
+      const idx = text.lastIndexOf(sep);
+      if (idx > lastIndex) lastIndex = idx;
+    }
+    return lastIndex;
+  };
 
   const processTtsQueue = useCallback(async () => {
-    if (isTtsProcessing.current) {
-      return; // Если TTS уже выполняется, ничего не делаем
+    if (isTtsProcessing.current || ttsQueue.current.length === 0) return;
+    isTtsProcessing.current = true;
+
+    let isLast = false;
+    const textToSynthesize = ttsQueue.current.shift();
+
+    if (/[?!.\n]$/.test(<string>textToSynthesize)) {
+        isLast = true;
     }
-
-    if (ttsQueue.current.length === 0) {
-      return; // Если очередь пуста, выходим
-    }
-
-    isTtsProcessing.current = true; // Устанавливаем флаг обработки
-
-    const textToSynthesize = ttsQueue.current.shift(); // Берем первый текст из очереди
     if (textToSynthesize) {
-      await localTts(textToSynthesize, setIsAiTalking); // Выполняем TTS
+      await localTts(textToSynthesize, setIsAiTalking, isLast);
     }
 
-    isTtsProcessing.current = false; // Сбрасываем флаг обработки после завершения TTS
-
-    // Проверяем, есть ли еще элементы в очереди, и если есть, запускаем следующую итерацию
-    if (ttsQueue.current.length > 0) {
-      processTtsQueue(); // Рекурсивный вызов для обработки следующего элемента
-    }
+    isTtsProcessing.current = false;
+    if (ttsQueue.current.length > 0) processTtsQueue();
   }, [setIsAiTalking]);
 
 
@@ -171,13 +217,15 @@ export function useLiveAPI({
     if (!audioStreamerRef.current) {
       audioContext({ id: "audio-out" }).then((audioCtx: AudioContext) => {
         audioStreamerRef.current = new AudioStreamer(audioCtx);
-        audioStreamerRef.current
-            .addWorklet<any>("vumeter-out", VolMeterWorket, (ev: any) => {
-              setVolume(ev.data.volume);
-            })
-            .then(() => {
-              // Successfully added worklet
-            });
+        if (audioStreamerRef.current instanceof AudioStreamer) {
+          audioStreamerRef.current
+              .addWorklet<any>("vumeter-out", VolMeterWorket, (ev: any) => {
+                setVolume(ev.data.volume);
+              })
+              .then(() => {
+                // Successfully added worklet
+              });
+        }
       });
     }
   }, [audioStreamerRef]);
@@ -189,31 +237,48 @@ export function useLiveAPI({
 
     const stopAudioStreamer = () => audioStreamerRef.current?.stop();
 
-    const onAudio = (data: ArrayBuffer) =>
+    const onAudio = (data: ArrayBuffer) => {
         audioStreamerRef.current?.addPCM16(new Uint8Array(data));
+        if (window.setAIState) {
+          window.setAIState("listening");
+        }
+        console.log("listening")
+    }
 
     let lastMessage ="";
 
     // **Новый код: Обработка текстовых ответов от Gemini, изменено имя события на "content"**
-    const onContent = async (message: any) => { // Изменено имя обработчика и события на "content"
+    const onContent = async (message: any) => {
       if (isModelTurn(message)) {
-        console.log(message)
         const modelTurn = message.modelTurn;
         const textParts = modelTurn.parts.filter(part => part.text);
         if (textParts.length > 0) {
           const responseText = textParts.map(part => part.text).join("");
-          ttsQueue.current.push(responseText); // Добавляем текст в очередь
-          processTtsQueue(); // Запускаем обработку очереди
-          lastMessage += responseText;
+          const fullText = incompleteWordBuffer.current + responseText;
+          const lastSeparatorIndex = findLastSeparatorIndex(fullText);
+
+          if (lastSeparatorIndex >= 0) {
+            const toSpeak = fullText.slice(0, lastSeparatorIndex + 1);
+            incompleteWordBuffer.current = fullText.slice(lastSeparatorIndex + 1);
+            if (toSpeak) {
+              ttsQueue.current.push(toSpeak);
+              console.log("TO SPEAK \"" + toSpeak + "\"")
+             processTtsQueue();
+            }
+          } else {
+            incompleteWordBuffer.current = fullText;
+          }
         }
       }
     };
 
     // В обработчике onTurnComplete добавляем void для Promise
     const onTurnComplete = () => {
-      console.log("Turn complete, sending to TTS:", lastMessage);
-      // FIX 4: Добавляем void для асинхронной операции
-      lastMessage = "";
+      if (incompleteWordBuffer.current) {
+        ttsQueue.current.push(incompleteWordBuffer.current);
+        incompleteWordBuffer.current = '';
+        processTtsQueue();
+      }
     };
 
     client

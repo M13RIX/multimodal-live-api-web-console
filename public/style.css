@@ -1,0 +1,483 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #0a0a20;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+}
+
+.spark-container {
+    display: flex;
+    position: fixed;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+.spark-visualizer {
+    position: relative;
+    display: revert;
+    opacity: 0;
+    margin-top: -69vh;
+    z-index: -9999;
+    width: 70vh;
+    height: 70vh;
+}
+
+.camera-feed-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%; /* Круглая форма для "глаза" */
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(100, 149, 237, 0.6); /* Мягкое голубое свечение */
+    transition: box-shadow 0.5s ease-in-out;
+}
+
+.camera-feed-container:hover {
+    box-shadow: 0 0 30px rgba(100, 149, 237, 0.8); /* Усиление свечения при наведении */
+}
+
+#camera-preview {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: contrast(127%);
+    -webkit-filter: contrast(127%);
+    -moz-filter: contrast(127%);
+}
+
+.attention-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 10px;
+    height: 10px;
+    background-color: #ffcc00; /* Желтый индикатор внимания */
+    border-radius: 50%;
+    box-shadow: 0 0 5px #ffcc00;
+    opacity: 0;
+    animation: blink 1s infinite alternate; /* Анимация мигания */
+}
+
+.camera-feed-container.listening .attention-indicator {
+    opacity: 1;
+}
+
+.emotion-display {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(100, 149, 237, 0.2); /* Полупрозрачный фон для эмоций */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.emotion-icon {
+    width: 60%;
+    height: 60%;
+    background-color: #6495ed; /* Голубой цвет эмоций по умолчанию */
+    border-radius: 50%;
+    transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+/* Примеры "эмоций" - цвет можно менять в зависимости от состояния ИИ */
+.emotion-display.happy .emotion-icon {
+    background-color: #00ff7f; /* Зеленый для радости */
+    transform: scale(1.2);
+}
+
+.emotion-display.sad .emotion-icon {
+    background-color: #00bfff; /* Светло-голубой для грусти */
+    transform: scale(0.8);
+}
+
+.emotion-display.thinking .emotion-icon {
+    background-color: #ffa07a; /* Лососевый для размышлений */
+    animation: pulse 1.5s infinite alternate;
+}
+
+.response-overlay {
+    position: absolute;
+    top: 17em;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none; /* Позволяет кликать сквозь оверлей */
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.response-overlay.responding {
+    opacity: 1;
+}
+
+#response-text {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 15px 20px;
+    border-radius: 10px;
+    font-size: 0.7em;
+    text-align: center;
+    max-width: 80%;
+}
+
+.spark-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-light {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background-color: #4caf50; /* Зеленый - активен */
+    box-shadow: 0 0 10px #4caf50;
+}
+
+.status-text {
+    font-size: 1em;
+    color: #bdbdbd;
+}
+
+/* Анимации */
+@keyframes blink {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.1); }
+}
+
+#pupil-glow {
+    position: absolute;
+    border-radius: 50%;
+    margin-top: -0vh;
+    background-color: transparent;
+    pointer-events: none; /* Чтобы не мешал взаимодействию */
+}
+
+/* ... ваш предыдущий CSS ... */
+
+#youtube-player-container {
+    width  : 740px;
+    height : 400px;
+}
+
+#youtube-player-container iframe {
+    width  : 100%;
+    height : 100%;
+}
+
+#youtube-player-container {
+    /* ... стили из предыдущего шага ... */
+    scale: 1.3;
+    margin-left: 9em;
+    margin-top: 4em;
+    mask-image: radial-gradient(circle at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 44%, rgba(0,0,0,0) 48%);
+}
+
+/* Дополнительные стили для нового блока */
+.video-info-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 24%; /* Занимает 40% ширины контейнера */
+    height: 100%;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: start; /* Центрирование по вертикали */
+    align-items: flex-start; /* Выравнивание по левому краю */
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background-color: rgba(0, 0, 0, 0.3);
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.4);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto; /* Чтобы можно было взаимодействовать с элементами внутри */
+    opacity: 0;
+    transform: translateX(50px); /* Начинает с небольшим смещением вправо */
+    font-family: 'Inter', sans-serif; /* Применяем шрифт Inter */
+}
+
+.video-info-panel.active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.video-title {
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 20px;
+    opacity: 0.8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.3s ease-in-out, text-shadow 0.3s ease-in-out;
+}
+
+.video-title:hover {
+    color: #6381ff;
+    text-shadow: 0 0 15px #6381ff;
+}
+
+.video-meta {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    opacity: 0.8;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    transform-origin: left center;
+}
+
+.video-meta:hover {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.author-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin-right: 10px;
+    background-color: #eee; /* Заглушка для иконки */
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.author-icon img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.video-date-author {
+    font-size: 0.9em;
+    color: #ccc;
+}
+
+.video-description {
+    font-size: 1em;
+    line-height: 1.6;
+    opacity: 0.9;
+    overflow: hidden;
+    max-height: 70vh;
+    overflow-y: auto;
+    transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease-in-out;
+    padding-right: 10px; /* Чтобы скрыть полосу прокрутки */
+}
+
+.video-description::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+}
+
+/* Анимация появления элементов */
+.video-title, .video-meta, .video-description {
+    animation-duration: 1s;
+    animation-fill-mode: both;
+}
+
+.video-title {
+    animation-name: fadeInSlideDown;
+}
+
+.video-meta {
+    animation-name: fadeInSlideLeft;
+    animation-delay: 0.2s;
+}
+
+.video-description {
+    animation-name: fadeIn;
+    animation-delay: 0.4s;
+}
+
+@keyframes fadeInSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInSlideLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0.9;
+    }
+}
+
+/* Стили для музыкального плеера */
+.music-player-container {
+    position: absolute;
+    bottom: 15vh; /* Расположение снизу */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05); /* Прозрачный фон */
+    border-radius: 15px;
+    padding: 15px 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 60px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    justify-content: space-between;
+    pointer-events: none;
+    transition: opacity 0.5s cubic-bezier(0.77, 0, 0.175, 1); /* Плавное появление */
+}
+
+.music-player-container.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.progress-bar-container {
+    flex-grow: 1;
+    margin-right: 1px;
+    display: flex;
+    align-items: center;
+}
+
+.progress-bar {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 6px;
+    background: rgba(150, 150, 150, 0.5);
+    border-radius: 5px;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.progress-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background-color: #00ffff; /* Цвет акцента */
+    border-radius: 50%;
+    cursor: grab;
+    transition: transform 0.2s ease-in-out;
+}
+
+.progress-bar::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background-color: #00ffff;
+    border-radius: 50%;
+    cursor: grab;
+    transition: transform 0.2s ease-in-out;
+}
+
+.progress-bar:hover, .progress-bar:focus {
+    background-color: rgba(180, 180, 180, 0.7);
+}
+
+.progress-bar::-webkit-slider-thumb:active {
+    transform: scale(1.2);
+}
+
+.controls-container {
+    display: flex;
+    align-items: center;
+}
+
+.control-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin: 0 10px;
+    opacity: 0.7;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.control-button:hover {
+    opacity: 1;
+}
+
+.control-icon {
+    width: 20px;
+    height: 20px;
+    fill: #ffffff;
+}
+
+.volume-control-container {
+    margin-left: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.volume-control {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 6px;
+    background: rgba(150, 150, 150, 0.5);
+    border-radius: 5px;
+    width: 60px;
+    cursor: pointer;
+    margin-left: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.volume-control::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background-color: #00ffff;
+    border-radius: 50%;
+    cursor: grab;
+    transition: transform 0.2s ease-in-out;
+}
+
+.volume-control::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background-color: #00ffff;
+    border-radius: 50%;
+    cursor: grab;
+    transition: transform 0.2s ease-in-out;
+}
+
+.volume-control:hover, .volume-control:focus {
+    background-color: rgba(180, 180, 180, 0.7);
+}
+
+.volume-control::-webkit-slider-thumb:active {
+    transform: scale(1.2);
+}
+
