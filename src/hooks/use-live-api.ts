@@ -42,7 +42,6 @@ async function localTts(text: string, setIsAiTalking: (talking: boolean) => void
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       const audioContext = new AudioContext();
       const analyser = audioContext.createAnalyser();
-      let animationFrameId: number;
 
       // Настройка анализатора
       analyser.fftSize = 256;
@@ -64,7 +63,7 @@ async function localTts(text: string, setIsAiTalking: (talking: boolean) => void
         // Отправка события с амплитудой
         if (window.setSpeakingAmplitude) window.setSpeakingAmplitude(amplitude)
 
-        animationFrameId = requestAnimationFrame(analyzeAmplitude);
+        requestAnimationFrame(analyzeAmplitude);
       };
 
       setIsAiTalking(true);
@@ -200,7 +199,7 @@ export function useLiveAPI({
     let isLast = false;
     const textToSynthesize = ttsQueue.current.shift();
 
-    if (/[?!.\n]$/.test(<string>textToSynthesize)) {
+    if (/[?!.\n]$/.test(textToSynthesize as string)) {
         isLast = true;
     }
     if (textToSynthesize) {
@@ -244,8 +243,6 @@ export function useLiveAPI({
         }
         console.log("listening")
     }
-
-    let lastMessage ="";
 
     // **Новый код: Обработка текстовых ответов от Gemini, изменено имя события на "content"**
     const onContent = async (message: any) => {
